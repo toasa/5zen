@@ -1,0 +1,41 @@
+pub const Inst = struct {
+    const Self = @This();
+    opcode: Opcode,
+    T: InstTypeSet,
+
+    pub fn init(opcode: Opcode, T: InstTypeSet) Self {
+        return Self {
+            .opcode = opcode,
+            .T = T,
+        };
+    }
+};
+
+pub const Opcode = enum(u7) {
+    Addi = 0b0010011,
+    Jalr = 0b1100111,
+};
+
+const InstType = enum {
+    I,
+};
+
+pub const InstTypeSet = union(InstType) {
+    I: IType,
+
+    pub const IType = struct {
+        rs1: u5,
+        rd: u5,
+        imm: u12,
+        func3: u3,
+
+        pub fn init(rs1: u5, rd: u5, imm: u12, func3: u3) @This() {
+            return @This() {
+                .rs1 = rs1,
+                .rd = rd,
+                .imm = imm,
+                .func3 = func3,
+            };
+        }
+    };
+};

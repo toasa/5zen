@@ -1,0 +1,6 @@
+// for RV32I
+pub const REG_SIZE: usize = 32;
+pub const REG_NUM: usize = REG_SIZE;
+pub const REG_TYPE = u32;
+// pub const MEM_SIZE: usize = 1 << REG_SIZE;
+pub const MEM_SIZE: usize = 4096;

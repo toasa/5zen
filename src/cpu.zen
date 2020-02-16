@@ -1,0 +1,120 @@
+usingnamespace @import("const.zen");
+const std = @import("std");
+const instruction = @import("instruction.zen");
+const Inst = instruction.Inst;
+const Opcode = instruction.Opcode;
+const InstTypeSet = instruction.InstTypeSet;
+
+pub const CPU = struct {
+    const Self = @This();
+    regs: [REG_NUM]REG_TYPE,
+    pc: REG_TYPE,
+    ram: [MEM_SIZE]u8,
+    rom: [MEM_SIZE]u8,
+
+    pub fn init(rom: [MEM_SIZE] u8) Self {
+        return Self {
+            .regs = [_]REG_TYPE{0} ** REG_NUM,
+            .pc = 0,
+            .ram = [_]u8{0} ** MEM_SIZE,
+            .rom = rom,
+        };
+    }
+
+    pub fn fetch(self: *Self) REG_TYPE {
+        // little endian
+        const inst_byte0 = @is(REG_TYPE, self.rom[self.pc]) << 24;
+        const inst_byte1 = @is(REG_TYPE, self.rom[self.pc+1]) << 16;
+        const inst_byte2 = @is(REG_TYPE, self.rom[self.pc+2]) << 8;
+        const inst_byte3 = @is(REG_TYPE, self.rom[self.pc+3]);
+        const inst_bytes = inst_byte0 | inst_byte1 | inst_byte2 | inst_byte3;
+        self.pc += 4;
+        return inst_bytes;
+    }
+
+    pub fn decode(self: *Self, inst_bytes: REG_TYPE) Inst {
+        // only RV32I
+        const opcode_int = @truncate(u7, inst_bytes);
+        const opcode = @intToEnum(Opcode, opcode_int);
+        switch (opcode) {
+            .Addi, .Jalr => {
+                const I = decodeIType(inst_bytes);
+                return Inst.init(opcode, I);
+            },
+            else => @panic("unknown opcode"),
+        }
+    }
+
+    fn decodeIType(inst_bytes: REG_TYPE) InstTypeSet {
+        const rs1 = @truncate(u5, inst_bytes >> 15);
+        const rd = @truncate(u5, inst_bytes >> 7);
+        const imm = @truncate(u12, inst_bytes >> 20);
+        const func3 = @truncate(u3, inst_bytes >> 12);
+        
+        const itype = InstTypeSet.IType.init(rs1, rd, imm, func3);
+        return InstTypeSet{ .I = itype };
+    }
+
+    pub fn execute(self: *Self, inst: Inst) void {
+        const opcode = inst.opcode;
+        switch(opcode) {
+            .Addi => {
+                const rd = inst.T.I.rd;
+                const rs1 = inst.T.I.rs1;
+                const imm = inst.T.I.imm;
+                self.regs[rd] = self.regs[rs1] + imm;
+            },
+            .Jalr => {
+                const rd = inst.T.I.rd;
+                self.regs[rd] = self.pc + 4;
+                const rs1 = inst.T.I.rs1;
+                // offsetは符号拡張する
+                const offset = @is(i32, @bitCast(i12, inst.T.I.imm));
+                const data = @bitCast(i32, self.regs[rs1]) + offset;
+                self.pc = @bitCast(u32, data) & (~@is(REG_TYPE, 1));
+            }
+        }
+    }
+
+    // for debug
+    pub fn printRegs(self: Self) void {
+        var i: u32 = 0;
+        for (self.regs) |reg| {
+            std.debug.warn("reg{}: {}\n", i, reg);
+            i += 1;
+        }
+    }
+};
+
+
+
+test "addi binary" {
+    const Assembler = @import("assembler.zen").Assembler;
+    const Emulator = @import("emulator.zen").Emulator;
+    
+    const program = &[_]REG_TYPE{
+        // addi x1, x1, 8
+        0b000000001000_00001_000_00001_0010011,
+    };
+
+    const rom = Assembler.assemble(program);
+    var emu = Emulator.init(rom);
+    emu.run();
+
+    std.testing.ok(emu.cpu.regs[1] == 8);
+
+    // テストはパスする
+
+    // const program = &[_]REG_TYPE{
+    //     // addi x2, x2, 1
+    //     0b000000000001_00010_000_00010_0010011,
+    //     // addi x3, x2, 1023
+    //     0b001111111111_00010_000_00011_0010011,
+    // };
+
+    // const rom = Assembler.assemble(program);
+    // var emu = Emulator.init(rom);
+    // emu.run();
+
+    // std.testing.ok(emu.cpu.regs[3] == 1024);
+}

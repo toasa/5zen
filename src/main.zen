@@ -1,5 +1,10 @@
+usingnamespace @import("const.zen");
 const std = @import("std");
+const Assembler = @import("assembler.zen").Assembler;
+const Emulator = @import("emulator.zen").Emulator;
 
 pub fn main() anyerror!void {
-    std.debug.warn("Congratulations on your first step to writing perfect software in Zen.\n");
+    const rom = Assembler.assemble();
+    var emu = Emulator.init(rom);
+    emu.run();
 }

@@ -1,0 +1,48 @@
+usingnamespace @import("const.zen");
+const Opcode = @import("instruction.zen").Opcode;
+
+pub const Assembler = struct {
+    const Self = @This();
+
+    pub fn init() Self {
+        return Self{};
+    }
+
+    // TODO: `program` must be assembly language, not be binary.
+    pub fn assemble() [MEM_SIZE]u8 {
+        var rom = [_]u8{0} ** MEM_SIZE;
+        var i: usize = 0;
+        const program = [_]REG_TYPE {
+            // addi x1, x1, 1
+            asm_addi(1, 1, 1),
+            asm_addi(2, 2, 1),
+            asm_addi(3, 2, 1023),
+            asm_ret(),
+        };
+        for (program) |code| {
+            // little endian
+            rom[i] = @truncate(u8, code>>24);
+            rom[i+1] = @truncate(u8, code>>16);
+            rom[i+2] = @truncate(u8, code>>8);
+            rom[i+3] = @truncate(u8, code);
+            i += 4;
+        }
+        return rom;
+    }
+};
+
+// addi rd, rs1, imm
+fn asm_addi(rd: REG_TYPE, rs1: REG_TYPE, imm: REG_TYPE) REG_TYPE {
+    const opcode: u7 = @enumToInt(Opcode.Addi);
+    return (imm << 20) | (rs1 << 15) | (rd << 7) | opcode;
+}
+
+fn asm_ret() REG_TYPE {
+    return asm_jalr(0, 0, 1);
+}
+
+// jalr rd, offset(rs1)
+fn asm_jalr(rd: REG_TYPE, offset: REG_TYPE, rs1: REG_TYPE) REG_TYPE {
+    const opcode: u7 = 0b1100111;
+    return (offset << 20) | (rs1 << 15) | (rs1 << 7) | opcode;
+}
