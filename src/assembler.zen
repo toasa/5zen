@@ -44,5 +44,5 @@ fn asm_ret() REG_TYPE {
 // jalr rd, offset(rs1)
 fn asm_jalr(rd: REG_TYPE, offset: REG_TYPE, rs1: REG_TYPE) REG_TYPE {
     const opcode: u7 = 0b1100111;
-    return (offset << 20) | (rs1 << 15) | (rs1 << 7) | opcode;
+    return (offset << 20) | (rs1 << 15) | (rd << 7) | opcode;
 }
