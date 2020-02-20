@@ -8,7 +8,6 @@ pub const Assembler = struct {
         return Self{};
     }
 
-    // TODO: `program` must be assembly language, not be binary.
     pub fn assemble() [MEM_SIZE]u8 {
         var rom = [_]u8{0} ** MEM_SIZE;
         var i: usize = 0;
