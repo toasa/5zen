@@ -8,16 +8,9 @@ pub const Assembler = struct {
         return Self{};
     }
 
-    pub fn assemble() [MEM_SIZE]u8 {
+    pub fn assemble(program: []REG_TYPE) [MEM_SIZE]u8 {
         var rom = [_]u8{0} ** MEM_SIZE;
         var i: usize = 0;
-        const program = [_]REG_TYPE {
-            // addi x5, x5, 1
-            asm_addi(5, 5, 1),
-            asm_addi(6, 6, 1),
-            asm_addi(7, 7, 1023),
-            asm_ret(),
-        };
         for (program) |code| {
             // little endian
             rom[i] = @truncate(u8, code>>24);
