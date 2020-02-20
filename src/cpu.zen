@@ -79,7 +79,7 @@ pub const CPU = struct {
     pub fn printRegs(self: Self) void {
         var i: u32 = 0;
         for (self.regs) |reg| {
-            std.debug.warn("reg{}: {}\n", i, reg);
+            std.debug.warn("reg{:2}: {}\n", i, reg);
             i += 1;
         }
     }
