@@ -68,10 +68,7 @@ pub const CPU = struct {
                 const rd = inst.T.I.rd;
                 self.regs[rd] = self.pc + 4;
                 const rs1 = inst.T.I.rs1;
-                // offsetは符号拡張する
-                const offset = @is(i32, @bitCast(i12, inst.T.I.imm));
-                const data = @bitCast(i32, self.regs[rs1]) + offset;
-                self.pc = @bitCast(u32, data) & (~@is(REG_TYPE, 1));
+                self.pc = self.regs[rs1];
             }
         }
     }
