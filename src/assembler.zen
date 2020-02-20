@@ -24,17 +24,17 @@ pub const Assembler = struct {
 };
 
 // addi rd, rs1, imm
-fn asm_addi(rd: REG_TYPE, rs1: REG_TYPE, imm: REG_TYPE) REG_TYPE {
+pub fn asm_addi(rd: REG_TYPE, rs1: REG_TYPE, imm: REG_TYPE) REG_TYPE {
     const opcode: u7 = @enumToInt(Opcode.Addi);
     return (imm << 20) | (rs1 << 15) | (rd << 7) | opcode;
 }
 
-fn asm_ret() REG_TYPE {
+pub fn asm_ret() REG_TYPE {
     return asm_jalr(0, 0, 1);
 }
 
 // jalr rd, offset(rs1)
-fn asm_jalr(rd: REG_TYPE, offset: REG_TYPE, rs1: REG_TYPE) REG_TYPE {
+pub fn asm_jalr(rd: REG_TYPE, offset: REG_TYPE, rs1: REG_TYPE) REG_TYPE {
     const opcode: u7 = 0b1100111;
     return (offset << 20) | (rs1 << 15) | (rd << 7) | opcode;
 }

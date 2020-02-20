@@ -20,6 +20,5 @@ pub const Emulator = struct {
             const inst = self.cpu.decode(inst_bytes);
             self.cpu.execute(inst);
         }
-        self.cpu.printRegs();
     }
 };

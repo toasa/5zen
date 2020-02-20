@@ -85,35 +85,46 @@ pub const CPU = struct {
     }
 };
 
-
-
-test "addi binary" {
-    const Assembler = @import("assembler.zen").Assembler;
+test "single addi" {
+    const assembler = @import("assembler.zen");
+    const Assembler = assembler.Assembler;
+    const asm_addi = assembler.asm_addi;
+    const asm_ret = assembler.asm_ret;
     const Emulator = @import("emulator.zen").Emulator;
     
     const program = &[_]REG_TYPE{
-        // addi x1, x1, 8
-        0b000000001000_00001_000_00001_0010011,
+        // addi x5, x5, 8
+        asm_addi(5, 5, 8),
+        // ret
+        asm_ret(),
     };
 
     const rom = Assembler.assemble(program);
     var emu = Emulator.init(rom);
     emu.run();
 
-    std.testing.ok(emu.cpu.regs[1] == 8);
+    std.testing.ok(emu.cpu.regs[5] == 8);
+}
 
-    // テストはパスする
+test "multi addi" {
+    const assembler = @import("assembler.zen");
+    const Assembler = assembler.Assembler;
+    const asm_addi = assembler.asm_addi;
+    const asm_ret = assembler.asm_ret;
+    const Emulator = @import("emulator.zen").Emulator;
 
-    // const program = &[_]REG_TYPE{
-    //     // addi x2, x2, 1
-    //     0b000000000001_00010_000_00010_0010011,
-    //     // addi x3, x2, 1023
-    //     0b001111111111_00010_000_00011_0010011,
-    // };
+    const program = &[_]REG_TYPE{
+        // addi x6, x6, 1
+        asm_addi(6, 6, 1),
+        // addi x3, x2, 1023
+        asm_addi(7, 6, 1023),
+        // ret
+        asm_ret(),
+    };
 
-    // const rom = Assembler.assemble(program);
-    // var emu = Emulator.init(rom);
-    // emu.run();
+    const rom = Assembler.assemble(program);
+    var emu = Emulator.init(rom);
+    emu.run();
 
-    // std.testing.ok(emu.cpu.regs[3] == 1024);
+    std.testing.ok(emu.cpu.regs[7] == 1024);
 }
