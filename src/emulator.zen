@@ -1,3 +1,4 @@
+const std = @import("std");
 usingnamespace @import("const.zen");
 const CPU = @import("cpu.zen").CPU;
 
@@ -13,9 +14,8 @@ pub const Emulator = struct {
     }
 
     pub fn run(self: *Self) void {
-        // ret命令によってloopを抜けたいが実装がわからんため
-        var cycle_count: usize = 0;
-        while (cycle_count < 4) : (cycle_count += 1) {
+        // Stop the CPU cycle loop when pc equals `RET_ADDR`.
+        while (self.cpu.pc != RET_ADDR) {
             const inst_bytes = self.cpu.fetch();
             const inst = self.cpu.decode(inst_bytes);
             self.cpu.execute(inst);
