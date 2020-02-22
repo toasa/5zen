@@ -24,6 +24,10 @@ pub const Assembler = struct {
     }
 };
 
+// 31                           20 19     15 14   12 11             7 6        0
+// +------------------------------+---------+-------+----------------+----------+
+// |          imm[11:0]           |   rs1   | func3 |       rd       |  opcode  |
+// +------------------------------+---------+-------+----------------+----------+
 fn asmIType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, imm: REG_TYPE) REG_TYPE {
     const rd_i = regToUint(rd);
     const rs1_i = regToUint(rs1);
