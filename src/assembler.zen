@@ -24,12 +24,17 @@ pub const Assembler = struct {
     }
 };
 
+fn asmIType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, imm: REG_TYPE) REG_TYPE {
+    const rd_i = regToUint(rd);
+    const rs1_i = regToUint(rs1);
+    return (imm << 20) | (rs1_i << 15) | (funct3 << 12) | (rd_i << 7) | opcode;
+}
+
 // addi rd, rs1, imm
 pub fn asm_addi(rd: Reg, rs1: Reg, imm: REG_TYPE) REG_TYPE {
-    const rd_i = regToInt(rd);
-    const rs1_i = regToInt(rs1);
     const opcode: u7 = @enumToInt(Opcode.Addi);
-    return (imm << 20) | (rs1_i << 15) | (rd_i << 7) | opcode;
+    const funct3: REG_TYPE = 0;
+    return asmIType(opcode, rd, funct3, rs1, imm);
 }
 
 // ret
@@ -39,12 +44,11 @@ pub fn asm_ret() REG_TYPE {
 
 // jalr rd, offset(rs1)
 pub fn asm_jalr(rd: Reg, offset: REG_TYPE, rs1: Reg) REG_TYPE {
-    const rd_i = regToInt(rd);
-    const rs1_i = regToInt(rs1);
     const opcode: u7 = 0b1100111;
-    return (offset << 20) | (rs1_i << 15) | (rd_i << 7) | opcode;
+    const funct3: REG_TYPE = 0;
+    return asmIType(opcode, rd, funct3, rs1, offset);
 }
 
-fn regToInt(r: Reg) REG_TYPE {
+fn regToUint(r: Reg) REG_TYPE {
     return @enumToInt(r);
 }
