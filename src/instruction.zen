@@ -1,28 +1,67 @@
-pub const Inst = struct {
+// RISC-V's opcode (represented by 7bits in RV32I)
+// is not unique value for each instruction.
+pub const Opcode = enum {
+    Add,
+    Addi,
+    Jalr,
+};
+
+pub const InstructionSet = union(Opcode) {
     const Self = @This();
-    opcode: Opcode,
-    T: InstTypeSet,
 
-    pub fn init(opcode: Opcode, T: InstTypeSet) Self {
-        return Self {
-            .opcode = opcode,
-            .T = T,
-        };
+    Add: AddInst,
+    Addi: AddiInst,
+    Jalr: JalrInst,
+
+    pub fn createAdd(operand: Operand) Self {
+        return Self{ .Add = AddInst.init(operand) };
     }
+
+    pub fn createAddi(operand: Operand) Self {
+        return Self{ .Addi = AddiInst.init(operand) };
+    }
+
+    pub fn createJalr(operand: Operand) Self {
+        return Self{ .Jalr = JalrInst.init(operand) };
+    }
+
+    pub const AddInst = struct {
+        pub const opcode: u7 = 0b0110011;
+        const T: Type = T.R;
+        operand: Operand,
+        
+        fn init(operand: Operand) @This() {
+            return @This() { .operand = operand };
+        }
+    };
+
+    pub const AddiInst = struct {
+        pub const opcode: u7 = 0b0010011;
+        const T: Type = T.I;
+        operand: Operand,
+        
+        fn init(operand: Operand) @This() {
+            return @This(){ .operand = operand };
+        }
+    };
+
+    pub const JalrInst = struct {
+        pub const opcode: u7 = 0b1100111;
+        const T: Type = T.I;
+        operand: Operand,
+        
+        fn init(operand: Operand) @This() {
+            return @This(){ .operand = operand };
+        }
+    };
 };
 
-pub const Opcode = enum(u7) {
-    Add  = 0b0110011,
-    Addi = 0b0010011,
-    Jalr = 0b1100111,
-};
-
-const InstType = enum {
+const Type = enum {
     R,
     I,
 };
 
-pub const InstTypeSet = union(InstType) {
+pub const Operand = union(Type) {
     R: RType,
     I: IType,
 

@@ -1,5 +1,8 @@
 usingnamespace @import("const.zen");
-const Opcode = @import("instruction.zen").Opcode;
+const InstructionSet = @import("instruction.zen").InstructionSet;
+const AddInst = InstructionSet.AddInst;
+const AddiInst = InstructionSet.AddiInst;
+const JalrInst = InstructionSet.JalrInst;
 const Reg = @import("cpu.zen").Reg;
 
 pub const Assembler = struct {
@@ -47,7 +50,7 @@ fn asmRType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, rs2: Reg, funct7: R
 
 // add rd, rs1, rs2
 pub fn asmAdd(rd: Reg, rs1: Reg, rs2: Reg) REG_TYPE {
-    const opcode: u7 = @enumToInt(Opcode.Add);
+    const opcode = AddInst.opcode;
     const funct3: REG_TYPE = 0;
     const funct7: REG_TYPE = 0;
     return asmRType(opcode, rd, funct3, rs1, rs2, funct7);
@@ -55,7 +58,7 @@ pub fn asmAdd(rd: Reg, rs1: Reg, rs2: Reg) REG_TYPE {
 
 // addi rd, rs1, imm
 pub fn asmAddi(rd: Reg, rs1: Reg, imm: REG_TYPE) REG_TYPE {
-    const opcode: u7 = @enumToInt(Opcode.Addi);
+    const opcode = AddiInst.opcode;
     const funct3: REG_TYPE = 0;
     return asmIType(opcode, rd, funct3, rs1, imm);
 }
@@ -67,7 +70,7 @@ pub fn asmRet() REG_TYPE {
 
 // jalr rd, offset(rs1)
 pub fn asmJalr(rd: Reg, offset: REG_TYPE, rs1: Reg) REG_TYPE {
-    const opcode: u7 = @enumToInt(Opcode.Jalr);
+    const opcode = JalrInst.opcode;
     const funct3: REG_TYPE = 0;
     return asmIType(opcode, rd, funct3, rs1, offset);
 }
