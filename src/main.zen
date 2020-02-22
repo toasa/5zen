@@ -1,14 +1,14 @@
 usingnamespace @import("const.zen");
 usingnamespace @import("assembler.zen");
+usingnamespace @import("cpu.zen");
 const std = @import("std");
 const Emulator = @import("emulator.zen").Emulator;
 
 pub fn main() anyerror!void {
     const program = &[_]REG_TYPE {
-        // addi x5, x5, 1
-        asm_addi(5, 5, 1),
-        asm_addi(6, 6, 1),
-        asm_addi(7, 7, 1023),
+        asm_addi(Reg.T0, Reg.T0, 1),
+        asm_addi(Reg.T1, Reg.T1, 1),
+        asm_addi(Reg.T2, Reg.T2, 1023),
         asm_ret(),
     };
 

@@ -1,5 +1,6 @@
 usingnamespace @import("const.zen");
 const Opcode = @import("instruction.zen").Opcode;
+const Reg = @import("cpu.zen").Reg;
 
 pub const Assembler = struct {
     const Self = @This();
@@ -24,17 +25,26 @@ pub const Assembler = struct {
 };
 
 // addi rd, rs1, imm
-pub fn asm_addi(rd: REG_TYPE, rs1: REG_TYPE, imm: REG_TYPE) REG_TYPE {
+pub fn asm_addi(rd: Reg, rs1: Reg, imm: REG_TYPE) REG_TYPE {
+    const rd_i = regToInt(rd);
+    const rs1_i = regToInt(rs1);
     const opcode: u7 = @enumToInt(Opcode.Addi);
-    return (imm << 20) | (rs1 << 15) | (rd << 7) | opcode;
+    return (imm << 20) | (rs1_i << 15) | (rd_i << 7) | opcode;
 }
 
+// ret
 pub fn asm_ret() REG_TYPE {
-    return asm_jalr(0, 0, 1);
+    return asm_jalr(Reg.Zero, 0, Reg.Ra);
 }
 
 // jalr rd, offset(rs1)
-pub fn asm_jalr(rd: REG_TYPE, offset: REG_TYPE, rs1: REG_TYPE) REG_TYPE {
+pub fn asm_jalr(rd: Reg, offset: REG_TYPE, rs1: Reg) REG_TYPE {
+    const rd_i = regToInt(rd);
+    const rs1_i = regToInt(rs1);
     const opcode: u7 = 0b1100111;
-    return (offset << 20) | (rs1 << 15) | (rd << 7) | opcode;
+    return (offset << 20) | (rs1_i << 15) | (rd_i << 7) | opcode;
+}
+
+fn regToInt(r: Reg) REG_TYPE {
+    return @enumToInt(r);
 }

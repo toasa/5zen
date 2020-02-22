@@ -1,6 +1,8 @@
 const std = @import("std");
 usingnamespace @import("const.zen");
-const CPU = @import("cpu.zen").CPU;
+const Cpu = @import("cpu.zen");
+const CPU = Cpu.CPU;
+const Reg = Cpu.Reg;
 
 pub const Emulator = struct {
     const Self = @This();

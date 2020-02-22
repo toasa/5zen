@@ -64,15 +64,28 @@ pub const CPU = struct {
                 const rd = inst.T.I.rd;
                 const rs1 = inst.T.I.rs1;
                 const imm = inst.T.I.imm;
-                self.regs[rd] = self.regs[rs1] + imm;
+                const data = self.regRead(rs1) + imm;
+                self.regWrite(rd, data);
             },
             .Jalr => {
                 const rd = inst.T.I.rd;
-                self.regs[rd] = self.pc + 4;
+                self.regWrite(rd, self.pc + 4);
                 const rs1 = inst.T.I.rs1;
                 self.pc = self.regs[rs1];
             }
         }
+    }
+
+    fn regRead(self: Self, reg: u5) REG_TYPE {
+        // zero register's value is always zero.
+        if (reg == 0) {
+            return 0;
+        }
+        return self.regs[reg];
+    }
+
+    fn regWrite(self: *Self, reg: u5, data: REG_TYPE) void {
+        self.regs[reg] = data;
     }
 
     // for debug
@@ -85,6 +98,42 @@ pub const CPU = struct {
     }
 };
 
+// Register
+pub const Reg = enum {
+    Zero, // constant zero
+    Ra,   // return address
+    Sp,   // stack pointer
+    Gp,   // global pointer
+    Tp,   // thread pointer
+    T0,   // tmp0
+    T1,   // tmp1
+    T2,   // tmp2
+    S0,   // save0
+    S1,   // save1
+    A0,   // function argument or frame pointer
+    A1,   // function argument
+    A2,   // function argument
+    A3,   // function argument
+    A4,   // function argument
+    A5,   // function argument
+    A6,   // function argument
+    A7,   // function argument
+    S2,   // save2
+    S3,   // save3
+    S4,   // save4
+    S5,   // save5
+    S6,   // save6
+    S7,   // save7
+    S8,   // save8
+    S9,   // save9
+    S10,  // save10
+    S11,  // save11
+    T3,   // tmp3
+    T4,   // tmp4
+    T5,   // tmp5
+    T6,   // tmp6
+};
+
 test "single addi" {
     const assembler = @import("assembler.zen");
     const Assembler = assembler.Assembler;
@@ -93,9 +142,7 @@ test "single addi" {
     const Emulator = @import("emulator.zen").Emulator;
     
     const program = &[_]REG_TYPE{
-        // addi x5, x5, 8
-        asm_addi(5, 5, 8),
-        // ret
+        asm_addi(Reg.T0, Reg.T0, 8),
         asm_ret(),
     };
 
@@ -103,7 +150,8 @@ test "single addi" {
     var emu = Emulator.init(rom);
     emu.run();
 
-    std.testing.ok(emu.cpu.regs[5] == 8);
+    const t0 = @enumToInt(Reg.T0);
+    std.testing.ok(emu.cpu.regRead(t0) == 8);
 }
 
 test "multi addi" {
@@ -114,11 +162,8 @@ test "multi addi" {
     const Emulator = @import("emulator.zen").Emulator;
 
     const program = &[_]REG_TYPE{
-        // addi x6, x6, 1
-        asm_addi(6, 6, 1),
-        // addi x3, x2, 1023
-        asm_addi(7, 6, 1023),
-        // ret
+        asm_addi(Reg.T1, Reg.T1, 1),
+        asm_addi(Reg.T2, Reg.T1, 1023),
         asm_ret(),
     };
 
@@ -126,5 +171,6 @@ test "multi addi" {
     var emu = Emulator.init(rom);
     emu.run();
 
-    std.testing.ok(emu.cpu.regs[7] == 1024);
+    const t2 = @enumToInt(Reg.T2);
+    std.testing.ok(emu.cpu.regRead(t2) == 1024);
 }
