@@ -6,10 +6,10 @@ const Emulator = @import("emulator.zen").Emulator;
 
 pub fn main() anyerror!void {
     const program = &[_]REG_TYPE {
-        asm_addi(Reg.T0, Reg.T0, 1),
-        asm_addi(Reg.T1, Reg.T1, 1),
-        asm_addi(Reg.T2, Reg.T2, 1023),
-        asm_ret(),
+        asmAddi(Reg.T0, Reg.T0, 1),
+        asmAddi(Reg.T1, Reg.T1, 1),
+        asmAddi(Reg.T2, Reg.T2, 1023),
+        asmRet(),
     };
 
     const rom = Assembler.assemble(program);

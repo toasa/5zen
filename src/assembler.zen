@@ -31,20 +31,20 @@ fn asmIType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, imm: REG_TYPE) REG_
 }
 
 // addi rd, rs1, imm
-pub fn asm_addi(rd: Reg, rs1: Reg, imm: REG_TYPE) REG_TYPE {
+pub fn asmAddi(rd: Reg, rs1: Reg, imm: REG_TYPE) REG_TYPE {
     const opcode: u7 = @enumToInt(Opcode.Addi);
     const funct3: REG_TYPE = 0;
     return asmIType(opcode, rd, funct3, rs1, imm);
 }
 
 // ret
-pub fn asm_ret() REG_TYPE {
-    return asm_jalr(Reg.Zero, 0, Reg.Ra);
+pub fn asmRet() REG_TYPE {
+    return asmJalr(Reg.Zero, 0, Reg.Ra);
 }
 
 // jalr rd, offset(rs1)
-pub fn asm_jalr(rd: Reg, offset: REG_TYPE, rs1: Reg) REG_TYPE {
-    const opcode: u7 = 0b1100111;
+pub fn asmJalr(rd: Reg, offset: REG_TYPE, rs1: Reg) REG_TYPE {
+    const opcode: u7 = @enumToInt(Opcode.Jalr);
     const funct3: REG_TYPE = 0;
     return asmIType(opcode, rd, funct3, rs1, offset);
 }

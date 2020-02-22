@@ -137,13 +137,13 @@ pub const Reg = enum {
 test "single addi" {
     const assembler = @import("assembler.zen");
     const Assembler = assembler.Assembler;
-    const asm_addi = assembler.asm_addi;
-    const asm_ret = assembler.asm_ret;
+    const asmAddi = assembler.asmAddi;
+    const asmRet = assembler.asmRet;
     const Emulator = @import("emulator.zen").Emulator;
     
     const program = &[_]REG_TYPE{
-        asm_addi(Reg.T0, Reg.T0, 8),
-        asm_ret(),
+        asmAddi(Reg.T0, Reg.T0, 8),
+        asmRet(),
     };
 
     const rom = Assembler.assemble(program);
@@ -157,14 +157,14 @@ test "single addi" {
 test "multi addi" {
     const assembler = @import("assembler.zen");
     const Assembler = assembler.Assembler;
-    const asm_addi = assembler.asm_addi;
-    const asm_ret = assembler.asm_ret;
+    const asmAddi = assembler.asmAddi;
+    const asmRet = assembler.asmRet;
     const Emulator = @import("emulator.zen").Emulator;
 
     const program = &[_]REG_TYPE{
-        asm_addi(Reg.T1, Reg.T1, 1),
-        asm_addi(Reg.T2, Reg.T1, 1023),
-        asm_ret(),
+        asmAddi(Reg.T1, Reg.T1, 1),
+        asmAddi(Reg.T2, Reg.T1, 1023),
+        asmRet(),
     };
 
     const rom = Assembler.assemble(program);
