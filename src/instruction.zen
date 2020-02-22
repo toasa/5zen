@@ -12,16 +12,37 @@ pub const Inst = struct {
 };
 
 pub const Opcode = enum(u7) {
+    Add  = 0b0110011,
     Addi = 0b0010011,
     Jalr = 0b1100111,
 };
 
 const InstType = enum {
+    R,
     I,
 };
 
 pub const InstTypeSet = union(InstType) {
+    R: RType,
     I: IType,
+
+    pub const RType = struct {
+        rs1: u5,
+        rs2: u5,
+        rd: u5,
+        func3: u3,
+        func7: u7,
+
+        pub fn init(rs1: u5, rs2: u5, rd: u5, func3: u3, func7: u7) @This() {
+            return @This() {
+                .rs1 = rs1,
+                .rs2 = rs2,
+                .rd = rd,
+                .func3 = func3,
+                .func7 = func7,
+            };
+        }
+    };
 
     pub const IType = struct {
         rs1: u5,

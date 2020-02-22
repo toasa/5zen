@@ -39,12 +39,27 @@ pub const CPU = struct {
         const opcode_int = @truncate(u7, inst_bytes);
         const opcode = @intToEnum(Opcode, opcode_int);
         switch (opcode) {
+            .Add => {
+                const R = decodeRType(inst_bytes);
+                return Inst.init(opcode, R);
+            },
             .Addi, .Jalr => {
                 const I = decodeIType(inst_bytes);
                 return Inst.init(opcode, I);
             },
             else => @panic("unknown opcode"),
         }
+    }
+
+    fn decodeRType(inst_bytes: REG_TYPE) InstTypeSet {
+        const rs1 = @truncate(u5, inst_bytes >> 15);
+        const rs2 = @truncate(u5, inst_bytes >> 20);
+        const rd = @truncate(u5, inst_bytes >> 7);
+        const func3 = @truncate(u3, inst_bytes >> 12);
+        const func7 = @truncate(u7, inst_bytes >> 25);
+        
+        const rtype = InstTypeSet.RType.init(rs1, rs2, rd, func3, func7);
+        return InstTypeSet{ .R = rtype };
     }
 
     fn decodeIType(inst_bytes: REG_TYPE) InstTypeSet {
@@ -60,6 +75,13 @@ pub const CPU = struct {
     pub fn execute(self: *Self, inst: Inst) void {
         const opcode = inst.opcode;
         switch(opcode) {
+            .Add => {
+                const rs1 = inst.T.R.rs1;
+                const rs2 = inst.T.R.rs2;
+                const rd = inst.T.R.rd;
+                const data = self.regRead(rs1) + self.regRead(rs2);
+                self.regWrite(rd, data);
+            },
             .Addi => {
                 const rd = inst.T.I.rd;
                 const rs1 = inst.T.I.rs1;
@@ -134,7 +156,7 @@ pub const Reg = enum {
     T6,   // tmp6
 };
 
-test "single addi" {
+test "single addi instruction" {
     const assembler = @import("assembler.zen");
     const Assembler = assembler.Assembler;
     const asmAddi = assembler.asmAddi;
@@ -154,7 +176,7 @@ test "single addi" {
     std.testing.ok(emu.cpu.regRead(t0) == 8);
 }
 
-test "multi addi" {
+test "multi addi instructino" {
     const assembler = @import("assembler.zen");
     const Assembler = assembler.Assembler;
     const asmAddi = assembler.asmAddi;
@@ -164,6 +186,29 @@ test "multi addi" {
     const program = &[_]REG_TYPE{
         asmAddi(Reg.T1, Reg.T1, 1),
         asmAddi(Reg.T2, Reg.T1, 1023),
+        asmRet(),
+    };
+
+    const rom = Assembler.assemble(program);
+    var emu = Emulator.init(rom);
+    emu.run();
+
+    const t2 = @enumToInt(Reg.T2);
+    std.testing.ok(emu.cpu.regRead(t2) == 1024);
+}
+
+test "add instruction" {
+    const assembler = @import("assembler.zen");
+    const Assembler = assembler.Assembler;
+    const asmAdd = assembler.asmAdd;
+    const asmAddi = assembler.asmAddi;
+    const asmRet = assembler.asmRet;
+    const Emulator = @import("emulator.zen").Emulator;
+
+    const program = &[_]REG_TYPE{
+        asmAddi(Reg.T0, Reg.T0, 1),
+        asmAddi(Reg.T1, Reg.T1, 1023),
+        asmAdd(Reg.T2, Reg.T1, Reg.T0),
         asmRet(),
     };
 

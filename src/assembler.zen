@@ -24,14 +24,33 @@ pub const Assembler = struct {
     }
 };
 
-// 31                           20 19     15 14   12 11             7 6        0
-// +------------------------------+---------+-------+----------------+----------+
-// |          imm[11:0]           |   rs1   | func3 |       rd       |  opcode  |
-// +------------------------------+---------+-------+----------------+----------+
+// 31                           20 19     15 14    12 11             7 6        0
+// +------------------------------+---------+--------+----------------+----------+
+// |          imm[11:0]           |   rs1   | funct3 |       rd       |  opcode  |
+// +------------------------------+---------+--------+----------------+----------+
 fn asmIType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, imm: REG_TYPE) REG_TYPE {
     const rd_i = regToUint(rd);
     const rs1_i = regToUint(rs1);
     return (imm << 20) | (rs1_i << 15) | (funct3 << 12) | (rd_i << 7) | opcode;
+}
+
+// 31           25 24           20 19     15 14    12 11             7 6        0
+// +------------------------------+---------+--------+----------------+----------+
+// |    funct7    |     rs2       |   rs1   | funct3 |       rd       |  opcode  |
+// +------------------------------+---------+--------+----------------+----------+
+fn asmRType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, rs2: Reg, funct7: REG_TYPE) REG_TYPE {
+    const rd_i = regToUint(rd);
+    const rs1_i = regToUint(rs1);
+    const rs2_i = regToUint(rs2);
+    return (funct7 << 25) | (rs2_i << 20) | (rs1_i << 15) | (funct3 << 12) | (rd_i << 7) | opcode;
+}
+
+// add rd, rs1, rs2
+pub fn asmAdd(rd: Reg, rs1: Reg, rs2: Reg) REG_TYPE {
+    const opcode: u7 = @enumToInt(Opcode.Add);
+    const funct3: REG_TYPE = 0;
+    const funct7: REG_TYPE = 0;
+    return asmRType(opcode, rd, funct3, rs1, rs2, funct7);
 }
 
 // addi rd, rs1, imm
