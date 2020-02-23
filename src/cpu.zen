@@ -4,6 +4,7 @@ const instruction = @import("instruction.zen");
 const InstructionSet = instruction.InstructionSet;
 const AddInst = InstructionSet.AddInst;
 const AddiInst = InstructionSet.AddiInst;
+const JalInst = InstructionSet.JalInst;
 const JalrInst = InstructionSet.JalrInst;
 const Operand = instruction.Operand;
 
@@ -50,6 +51,10 @@ pub const CPU = struct {
                 const operand = decodeIType(inst_bytes);
                 return InstructionSet.createAddi(operand);
             },
+            JalInst.opcode => {
+                const operand = decodeJType(inst_bytes);
+                return InstructionSet.createJal(operand);
+            },
             JalrInst.opcode => {
                 const operand = decodeIType(inst_bytes);
                 return InstructionSet.createJalr(operand);
@@ -79,6 +84,25 @@ pub const CPU = struct {
         return Operand{ .I = itype };
     }
 
+    fn decodeJType(inst_bytes: REG_TYPE) Operand {
+        const rd = @truncate(u5, inst_bytes >> 7);
+        const imm10_1 = @truncate(u9, inst_bytes >> 22);
+        const imm11 = @truncate(u1, inst_bytes >> 20);
+        const imm12_19 = @truncate(u8, inst_bytes >> 12);
+        const imm20 = @truncate(u1, inst_bytes >> 31);
+
+        const imm10_1_ = @intCast(u20, imm10_1);
+        const imm11_ = @intCast(u20, imm11);
+        const imm12_19_ = @intCast(u20, imm12_19);
+        const imm20_ = @intCast(u20, imm20);
+
+        const imm_u = (imm20_ << 19) | (imm12_19_ << 11) | (imm11_ << 10) | imm10_1_;
+
+        const imm = @bitCast(i20, imm_u);
+        const jtype = Operand.JType.init(rd, imm);
+        return Operand{ .J = jtype };
+    }
+
     pub fn execute(self: *Self, inst: InstructionSet) void {
         switch(inst) {
             .Add => |add| {
@@ -94,6 +118,15 @@ pub const CPU = struct {
                 const imm = addi.operand.I.imm;
                 const data = self.regRead(rs1) + imm;
                 self.regWrite(rd, data);
+            },
+            .Jal => |jal| {
+                const rd = jal.operand.J.rd;
+                const imm = jal.operand.J.imm;
+                self.regWrite(rd, self.pc);
+
+                var pc_int = @bitCast(i32, self.pc);
+                pc_int += imm;
+                self.pc = @bitCast(REG_TYPE, pc_int);
             },
             .Jalr => |jalr| {
                 const rd = jalr.operand.I.rd;
@@ -224,4 +257,28 @@ test "add instruction" {
 
     const t2 = @enumToInt(Reg.T2);
     std.testing.ok(emu.cpu.regRead(t2) == 1024);
+}
+
+test "jal instruction" {
+    const assembler = @import("assembler.zen");
+    const Assembler = assembler.Assembler;
+    const asmAddi = assembler.asmAddi;
+    const asmJal = assembler.asmJal;
+    const asmRet = assembler.asmRet;
+    const Emulator = @import("emulator.zen").Emulator;
+
+    const program = &[_]REG_TYPE{
+        asmAddi(Reg.T1, Reg.T1, 10),
+        asmJal(Reg.Zero, 4),
+        // jump this instruction
+        asmAddi(Reg.T1, Reg.T1, 20),
+        asmRet(),
+    };
+
+    const rom = Assembler.assemble(program);
+    var emu = Emulator.init(rom);
+    emu.run();
+
+    const t1 = @enumToInt(Reg.T1);
+    std.testing.ok(emu.cpu.regRead(t1) == 10);
 }

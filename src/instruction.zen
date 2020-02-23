@@ -3,14 +3,15 @@
 pub const Opcode = enum {
     Add,
     Addi,
+    Jal,
     Jalr,
 };
 
 pub const InstructionSet = union(Opcode) {
     const Self = @This();
-
     Add: AddInst,
     Addi: AddiInst,
+    Jal: JalInst,
     Jalr: JalrInst,
 
     pub fn createAdd(operand: Operand) Self {
@@ -19,6 +20,10 @@ pub const InstructionSet = union(Opcode) {
 
     pub fn createAddi(operand: Operand) Self {
         return Self{ .Addi = AddiInst.init(operand) };
+    }
+
+    pub fn createJal(operand: Operand) Self {
+        return Self{ .Jal = JalInst.init(operand) };
     }
 
     pub fn createJalr(operand: Operand) Self {
@@ -45,6 +50,16 @@ pub const InstructionSet = union(Opcode) {
         }
     };
 
+    pub const JalInst = struct {
+        pub const opcode: u7 = 0b1101111;
+        const T: Type = T.J;
+        operand: Operand,
+        
+        fn init(operand: Operand) @This() {
+            return @This(){ .operand = operand };
+        }
+    };
+
     pub const JalrInst = struct {
         pub const opcode: u7 = 0b1100111;
         const T: Type = T.I;
@@ -59,11 +74,13 @@ pub const InstructionSet = union(Opcode) {
 const Type = enum {
     R,
     I,
+    J,
 };
 
 pub const Operand = union(Type) {
     R: RType,
     I: IType,
+    J: JType,
 
     pub const RType = struct {
         rs1: u5,
@@ -95,6 +112,18 @@ pub const Operand = union(Type) {
                 .rd = rd,
                 .imm = imm,
                 .func3 = func3,
+            };
+        }
+    };
+
+    pub const JType = struct {
+        rd: u5,
+        imm: i20,
+
+        pub fn init(rd: u5, imm: i20) @This() {
+            return @This() {
+                .rd = rd,
+                .imm = imm,
             };
         }
     };

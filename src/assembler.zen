@@ -27,7 +27,7 @@ pub const Assembler = struct {
     }
 };
 
-// 31                           20 19     15 14    12 11             7 6        0
+// 32                           20 19     15 14    12 11             7 6        0
 // +------------------------------+---------+--------+----------------+----------+
 // |          imm[11:0]           |   rs1   | funct3 |       rd       |  opcode  |
 // +------------------------------+---------+--------+----------------+----------+
@@ -37,7 +37,7 @@ fn asmIType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, imm: REG_TYPE) REG_
     return (imm << 20) | (rs1_i << 15) | (funct3 << 12) | (rd_i << 7) | opcode;
 }
 
-// 31           25 24           20 19     15 14    12 11             7 6        0
+// 32           25 24           20 19     15 14    12 11             7 6        0
 // +------------------------------+---------+--------+----------------+----------+
 // |    funct7    |     rs2       |   rs1   | funct3 |       rd       |  opcode  |
 // +------------------------------+---------+--------+----------------+----------+
@@ -46,6 +46,20 @@ fn asmRType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, rs2: Reg, funct7: R
     const rs1_i = regToUint(rs1);
     const rs2_i = regToUint(rs2);
     return (funct7 << 25) | (rs2_i << 20) | (rs1_i << 15) | (funct3 << 12) | (rd_i << 7) | opcode;
+}
+
+// 32    31 30          22 21   20 19              12 11             7 6        0
+// +-------+--------------+-------+------------------+----------------+----------+
+// |imm[20]|  imm[10:1]   |imm[11]|    imm[19:12]    |       rd       |  opcode  |
+// +-------+--------------+-------+------------------+----------------+----------+
+fn asmJType(opcode: u7, rd: Reg, imm: i20) REG_TYPE {
+    const rd_i = regToUint(rd);
+    const imm_u = @intCast(u20, imm);
+    const imm10_1: REG_TYPE = @truncate(u9, imm_u >> 22);
+    const imm11: REG_TYPE = @truncate(u1, imm_u >> 20);
+    const imm12_19: REG_TYPE = @truncate(u8, imm_u >> 12);
+    const imm20: REG_TYPE = @truncate(u1, imm_u >> 31);
+    return (imm20 << 31) | (imm10_1 << 22) | (imm11 << 20) | (imm12_19 << 12) | (rd_i << 7) | opcode;
 }
 
 // add rd, rs1, rs2
@@ -66,6 +80,12 @@ pub fn asmAddi(rd: Reg, rs1: Reg, imm: REG_TYPE) REG_TYPE {
 // ret
 pub fn asmRet() REG_TYPE {
     return asmJalr(Reg.Zero, 0, Reg.Ra);
+}
+
+// jal rd, offset
+pub fn asmJal(rd: Reg, offset: i20) REG_TYPE {
+    const opcode = JalrInst.opcode;
+    return asmJType(opcode, rd, offset);
 }
 
 // jalr rd, offset(rs1)
