@@ -55,10 +55,10 @@ fn asmRType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, rs2: Reg, funct7: R
 fn asmJType(opcode: u7, rd: Reg, imm: i20) REG_TYPE {
     const rd_i = regToUint(rd);
     const imm_u = @intCast(u20, imm);
-    const imm10_1: REG_TYPE = @truncate(u9, imm_u >> 22);
-    const imm11: REG_TYPE = @truncate(u1, imm_u >> 20);
-    const imm12_19: REG_TYPE = @truncate(u8, imm_u >> 12);
-    const imm20: REG_TYPE = @truncate(u1, imm_u >> 31);
+    const imm10_1: REG_TYPE = @truncate(u9, imm_u);
+    const imm11: REG_TYPE = @truncate(u1, imm_u >> 10);
+    const imm12_19: REG_TYPE = @truncate(u8, imm_u >> 11);
+    const imm20: REG_TYPE = @truncate(u1, imm_u >> 19);
     return (imm20 << 31) | (imm10_1 << 22) | (imm11 << 20) | (imm12_19 << 12) | (rd_i << 7) | opcode;
 }
 
