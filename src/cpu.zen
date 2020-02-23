@@ -151,10 +151,12 @@ pub const CPU = struct {
 
     // for debug
     pub fn printRegs(self: Self) void {
-        var i: u32 = 0;
-        for (self.regs) |reg| {
-            std.debug.warn("reg{:2}: {}\n", i, reg);
-            i += 1;
+        var i: @TagType(Reg) = 0;
+        for (self.regs) |reg_val| {
+            const reg = @intToEnum(Reg, i);
+            const reg_name = @tagName(reg);
+            std.debug.warn("{}: {}\n", reg_name, reg_val);
+            i +%= 1;
         }
     }
 };
