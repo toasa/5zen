@@ -1,4 +1,5 @@
 usingnamespace @import("const.zen");
+usingnamespace @import("assembler.zen");
 const std = @import("std");
 const instruction = @import("instruction.zen");
 const InstructionSet = instruction.InstructionSet;
@@ -201,78 +202,45 @@ pub const Reg = enum {
     T6,   // tmp6
 };
 
-test "single addi instruction" {
-    const assembler = @import("assembler.zen");
-    const Assembler = assembler.Assembler;
-    const asmAddi = assembler.asmAddi;
-    const asmRet = assembler.asmRet;
+// Test that `reg` register value equal to `expected`.
+fn testHelper(program: []REG_TYPE, reg: Reg, expected: REG_TYPE) void {
     const Emulator = @import("emulator.zen").Emulator;
-    
-    const program = &[_]REG_TYPE{
-        asmAddi(Reg.T0, Reg.T0, 8),
-        asmRet(),
-    };
-
     const rom = Assembler.assemble(program);
     var emu = Emulator.init(rom);
     emu.run();
 
-    const t0 = @enumToInt(Reg.T0);
-    std.testing.ok(emu.cpu.regRead(t0) == 8);
+    const reg_int = @enumToInt(reg);
+    std.testing.ok(emu.cpu.regRead(reg_int) == expected);
+}
+
+test "single addi instruction" {    
+    const program = &[_]REG_TYPE{
+        asmAddi(Reg.T0, Reg.T0, 8),
+        asmRet(),
+    };
+    testHelper(program, Reg.T0, 8);
 }
 
 test "multi addi instruction" {
-    const assembler = @import("assembler.zen");
-    const Assembler = assembler.Assembler;
-    const asmAddi = assembler.asmAddi;
-    const asmRet = assembler.asmRet;
-    const Emulator = @import("emulator.zen").Emulator;
-
     const program = &[_]REG_TYPE{
         asmAddi(Reg.T1, Reg.T1, 1),
         asmAddi(Reg.T2, Reg.T1, 1023),
         asmRet(),
     };
-
-    const rom = Assembler.assemble(program);
-    var emu = Emulator.init(rom);
-    emu.run();
-
-    const t2 = @enumToInt(Reg.T2);
-    std.testing.ok(emu.cpu.regRead(t2) == 1024);
+    testHelper(program, Reg.T2, 1024);
 }
 
 test "add instruction" {
-    const assembler = @import("assembler.zen");
-    const Assembler = assembler.Assembler;
-    const asmAdd = assembler.asmAdd;
-    const asmAddi = assembler.asmAddi;
-    const asmRet = assembler.asmRet;
-    const Emulator = @import("emulator.zen").Emulator;
-
     const program = &[_]REG_TYPE{
         asmAddi(Reg.T0, Reg.T0, 1),
         asmAddi(Reg.T1, Reg.T1, 1023),
         asmAdd(Reg.T2, Reg.T1, Reg.T0),
         asmRet(),
     };
-
-    const rom = Assembler.assemble(program);
-    var emu = Emulator.init(rom);
-    emu.run();
-
-    const t2 = @enumToInt(Reg.T2);
-    std.testing.ok(emu.cpu.regRead(t2) == 1024);
+    testHelper(program, Reg.T2, 1024);
 }
 
 test "jal instruction" {
-    const assembler = @import("assembler.zen");
-    const Assembler = assembler.Assembler;
-    const asmAddi = assembler.asmAddi;
-    const asmJal = assembler.asmJal;
-    const asmRet = assembler.asmRet;
-    const Emulator = @import("emulator.zen").Emulator;
-
     const program = &[_]REG_TYPE{
         asmAddi(Reg.T1, Reg.T1, 10),
         asmJal(Reg.Zero, 8),
@@ -280,11 +248,5 @@ test "jal instruction" {
         asmAddi(Reg.T1, Reg.T1, 20),
         asmRet(),
     };
-
-    const rom = Assembler.assemble(program);
-    var emu = Emulator.init(rom);
-    emu.run();
-
-    const t1 = @enumToInt(Reg.T1);
-    std.testing.ok(emu.cpu.regRead(t1) == 10);
+    testHelper(program, Reg.T1, 10);
 }
