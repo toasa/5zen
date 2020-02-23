@@ -2,6 +2,7 @@ usingnamespace @import("const.zen");
 const InstructionSet = @import("instruction.zen").InstructionSet;
 const AddInst = InstructionSet.AddInst;
 const AddiInst = InstructionSet.AddiInst;
+const JalInst = InstructionSet.JalInst;
 const JalrInst = InstructionSet.JalrInst;
 const Reg = @import("cpu.zen").Reg;
 
@@ -84,7 +85,7 @@ pub fn asmRet() REG_TYPE {
 
 // jal rd, offset
 pub fn asmJal(rd: Reg, offset: i20) REG_TYPE {
-    const opcode = JalrInst.opcode;
+    const opcode = JalInst.opcode;
     return asmJType(opcode, rd, offset);
 }
 
