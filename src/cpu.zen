@@ -33,7 +33,6 @@ pub const CPU = struct {
         const inst_byte2 = @is(REG_TYPE, self.rom[self.pc+2]) << 8;
         const inst_byte3 = @is(REG_TYPE, self.rom[self.pc+3]);
         const inst_bytes = inst_byte0 | inst_byte1 | inst_byte2 | inst_byte3;
-        self.pc += 4;
         return inst_bytes;
     }
 
@@ -111,6 +110,7 @@ pub const CPU = struct {
                 const rd = add.operand.R.rd;
                 const data = self.regRead(rs1) + self.regRead(rs2);
                 self.regWrite(rd, data);
+                self.pc += 4;
             },
             .Addi => |addi| {
                 const rd = addi.operand.I.rd;
@@ -118,15 +118,15 @@ pub const CPU = struct {
                 const imm = addi.operand.I.imm;
                 const data = self.regRead(rs1) + imm;
                 self.regWrite(rd, data);
+                self.pc += 4;
             },
             .Jal => |jal| {
                 const rd = jal.operand.J.rd;
                 const imm = jal.operand.J.imm;
-                self.regWrite(rd, self.pc);
-
-                var pc_int = @bitCast(i32, self.pc);
-                pc_int += imm;
-                self.pc = @bitCast(REG_TYPE, pc_int);
+                self.regWrite(rd, self.pc + 4);
+                var pc_i = @bitCast(i32, self.pc);
+                pc_i += imm;
+                self.pc = @bitCast(REG_TYPE, pc_i);
             },
             .Jalr => |jalr| {
                 const rd = jalr.operand.I.rd;
@@ -269,7 +269,7 @@ test "jal instruction" {
 
     const program = &[_]REG_TYPE{
         asmAddi(Reg.T1, Reg.T1, 10),
-        asmJal(Reg.Zero, 4),
+        asmJal(Reg.Zero, 8),
         // jump this instruction
         asmAddi(Reg.T1, Reg.T1, 20),
         asmRet(),
