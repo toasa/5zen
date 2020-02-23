@@ -146,6 +146,10 @@ pub const CPU = struct {
     }
 
     fn regWrite(self: *Self, reg: u5, data: REG_TYPE) void {
+        // zero register is always zero.
+        if (reg == 0) {
+            return;
+        }
         self.regs[reg] = data;
     }
 
