@@ -2,15 +2,17 @@
 // is not unique value for each instruction.
 pub const Opcode = enum {
     Add,
-    Addi,
-    Jal,
-    Jalr,
+    Addi, // Add immediate
+    Blt,  // Branch if less than
+    Jal,  // Jump and link
+    Jalr, // Jump and link register
 };
 
 pub const InstructionSet = union(Opcode) {
     const Self = @This();
     Add: AddInst,
     Addi: AddiInst,
+    Blt: BltInst,
     Jal: JalInst,
     Jalr: JalrInst,
 
@@ -20,6 +22,10 @@ pub const InstructionSet = union(Opcode) {
 
     pub fn createAddi(operand: Operand) Self {
         return Self{ .Addi = AddiInst.init(operand) };
+    }
+
+    pub fn createBlt(operand: Operand) Self {
+        return Self{ .Blt = BltInst.init(operand) };
     }
 
     pub fn createJal(operand: Operand) Self {
@@ -50,6 +56,16 @@ pub const InstructionSet = union(Opcode) {
         }
     };
 
+    pub const BltInst = struct {
+        pub const opcode: u7 = 0b1100011;
+        const T: Type = T.B;
+        operand: Operand,
+
+        fn init(operand: Operand) @This() {
+            return @This(){ .operand = operand };
+        }
+    };
+
     pub const JalInst = struct {
         pub const opcode: u7 = 0b1101111;
         const T: Type = T.J;
@@ -74,12 +90,14 @@ pub const InstructionSet = union(Opcode) {
 const Type = enum {
     R,
     I,
+    B,
     J,
 };
 
 pub const Operand = union(Type) {
     R: RType,
     I: IType,
+    B: BType,
     J: JType,
 
     pub const RType = struct {
@@ -110,6 +128,22 @@ pub const Operand = union(Type) {
             return @This() {
                 .rs1 = rs1,
                 .rd = rd,
+                .imm = imm,
+                .func3 = func3,
+            };
+        }
+    };
+
+    pub const BType = struct {
+        rs1: u5,
+        rs2: u5,
+        imm: i12,
+        func3: u3,
+
+        pub fn init(rs1: u5, rs2: u5, imm: i12, func3: u3) @This() {
+            return @This() {
+                .rs1 = rs1,
+                .rs2 = rs2,
                 .imm = imm,
                 .func3 = func3,
             };

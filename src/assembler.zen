@@ -2,6 +2,7 @@ usingnamespace @import("const.zen");
 const InstructionSet = @import("instruction.zen").InstructionSet;
 const AddInst = InstructionSet.AddInst;
 const AddiInst = InstructionSet.AddiInst;
+const BltInst = InstructionSet.BltInst;
 const JalInst = InstructionSet.JalInst;
 const JalrInst = InstructionSet.JalrInst;
 const Reg = @import("cpu.zen").Reg;
@@ -49,7 +50,7 @@ fn asmRType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, rs2: Reg, funct7: R
     return (funct7 << 25) | (rs2_i << 20) | (rs1_i << 15) | (funct3 << 12) | (rd_i << 7) | opcode;
 }
 
-// 32    31 30          22 21   20 19              12 11             7 6        0
+// 32    31 30          21 21   20 19              12 11             7 6        0
 // +-------+--------------+-------+------------------+----------------+----------+
 // |imm[20]|  imm[10:1]   |imm[11]|    imm[19:12]    |       rd       |  opcode  |
 // +-------+--------------+-------+------------------+----------------+----------+
@@ -61,6 +62,23 @@ fn asmJType(opcode: u7, rd: Reg, imm: i20) REG_TYPE {
     const imm12_19: REG_TYPE = @truncate(u8, imm_u >> 11);
     const imm20: REG_TYPE = @truncate(u1, imm_u >> 19);
     return (imm20 << 31) | (imm10_1 << 22) | (imm11 << 20) | (imm12_19 << 12) | (rd_i << 7) | opcode;
+}
+
+//  31   31 30    25 24           20 19     15 14    12 11     8 7     7 6        0
+// +-------+--------+---------------+------------------+--------+-------+----------+
+// |imm[12]|im[10:5]|      rs2      |   rs1   | funct3 |imm[4:1]|imm[11]|  opcode  |
+// +-------+--------+---------------+------------------+--------+-------+----------+
+fn asmBType(opcode: u7, imm: i12, funct3: REG_TYPE, rs1: Reg, rs2: Reg) REG_TYPE {
+    const rs1_u = regToUint(rs1);
+    const rs2_u = regToUint(rs2);
+    // runtime error
+    // cannot cast i12 to u12
+    const imm_u = @intCast(u12, imm);
+    const imm1_4: REG_TYPE = @truncate(u4, imm_u);
+    const imm5_10: REG_TYPE = @truncate(u6, imm_u >> 4);
+    const imm11: REG_TYPE = @truncate(u1, imm_u >> 10);
+    const imm12: REG_TYPE = @truncate(u1, imm_u >> 11);
+    return (imm12 << 31) | (imm5_10 << 25) | (rs2_u << 20) | (rs1_u << 15) | (funct3 << 12) | (imm1_4 << 8) | (imm11 << 7) | opcode;
 }
 
 // add rd, rs1, rs2
@@ -76,6 +94,13 @@ pub fn asmAddi(rd: Reg, rs1: Reg, imm: REG_TYPE) REG_TYPE {
     const opcode = AddiInst.opcode;
     const funct3: REG_TYPE = 0;
     return asmIType(opcode, rd, funct3, rs1, imm);
+}
+
+// blt rs1, rs2, offset
+pub fn asmBlt(rs1: Reg, rs2: Reg, offset: i12) REG_TYPE {
+    const opcode = BltInst.opcode;
+    const funct3: REG_TYPE = 0b100;
+    return asmBType(opcode, offset, funct3, rs1, rs2);
 }
 
 // ret

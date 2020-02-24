@@ -5,6 +5,7 @@ const instruction = @import("instruction.zen");
 const InstructionSet = instruction.InstructionSet;
 const AddInst = InstructionSet.AddInst;
 const AddiInst = InstructionSet.AddiInst;
+const BltInst = InstructionSet.BltInst;
 const JalInst = InstructionSet.JalInst;
 const JalrInst = InstructionSet.JalrInst;
 const Operand = instruction.Operand;
@@ -51,6 +52,10 @@ pub const CPU = struct {
                 const operand = decodeIType(inst_bytes);
                 return InstructionSet.createAddi(operand);
             },
+            BltInst.opcode => {
+                const operand = decodeBType(inst_bytes);
+                return InstructionSet.createBlt(operand);
+            },
             JalInst.opcode => {
                 const operand = decodeJType(inst_bytes);
                 return InstructionSet.createJal(operand);
@@ -82,6 +87,27 @@ pub const CPU = struct {
         
         const itype = Operand.IType.init(rs1, rd, imm, func3);
         return Operand{ .I = itype };
+    }
+
+    fn decodeBType(inst_bytes: REG_TYPE) Operand {
+        const rs1 = @truncate(u5, inst_bytes >> 15);
+        const rs2 = @truncate(u5, inst_bytes >> 20);
+        const func3 = @truncate(u3, inst_bytes >> 12);
+
+        const imm1_4 = @truncate(u4, inst_bytes >> 8);
+        const imm5_10 = @truncate(u4, inst_bytes >> 25);
+        const imm11 = @truncate(u4, inst_bytes >> 7);
+        const imm12 = @truncate(u4, inst_bytes >> 31);
+
+        const imm1_4_ = @intCast(u12, imm1_4);
+        const imm5_10_ = @intCast(u12, imm5_10);
+        const imm11_ = @intCast(u12, imm11);
+        const imm12_ = @intCast(u12, imm12);
+
+        const imm_u = (imm12_ << 11) | (imm11_ << 10) | (imm5_10_ << 4) | imm1_4_;
+        const imm = @bitCast(i12, imm_u);
+        const btype = Operand.BType.init(rs1, rs2, imm, func3);
+        return Operand{ .B = btype };
     }
 
     fn decodeJType(inst_bytes: REG_TYPE) Operand {
@@ -120,6 +146,18 @@ pub const CPU = struct {
                 const data = self.regRead(rs1) + imm;
                 self.regWrite(rd, data);
                 self.pc += 4;
+            },
+            .Blt => |blt| {
+                const rs1 = blt.operand.B.rs1;
+                const rs2 = blt.operand.B.rs2;
+                const imm = blt.operand.B.imm;
+                if (rs1 < rs2) {
+                    var pc_i = @bitCast(i32, self.pc);
+                    pc_i += imm;
+                    self.pc = @bitCast(REG_TYPE, pc_i);
+                } else {
+                    self.pc += 4;
+                }
             },
             .Jal => |jal| {
                 const rd = jal.operand.J.rd;
@@ -249,4 +287,16 @@ test "jal instruction" {
         asmRet(),
     };
     testHelper(program, Reg.T1, 10);
+}
+
+test "blt instruction" {
+    const program = &[_]REG_TYPE{
+        asmAddi(Reg.T1, Reg.T1, 1),
+        asmAddi(Reg.T2, Reg.T2, 2),
+        // if (t1 < t2) { pc += 8; }
+        asmBlt(Reg.T1, Reg.T2, 8),
+        asmAddi(Reg.T2, Reg.T2, 1),
+        asmRet(),
+    };
+    testHelper(program, Reg.T2, 2);
 }
