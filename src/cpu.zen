@@ -315,3 +315,37 @@ test "blt instruction" {
     };
     testHelper(program, Reg.T2, 12);
 }
+
+test "calculate 10th term of fibonacci sequence" {
+    // t0 = 1;
+    // t1 = 1;
+    // t3 = 1;
+    // t4 = 10;
+    // while (t3 < t4) {
+    //     t2 = t0 + t1;
+    //     t0 = t1;
+    //     t1 = t2;
+    //     t3 += 1;
+    // }
+    const program = &[_]PROG_TYPE {
+        // fibonacci operand 1
+        asmAddi(Reg.T0, Reg.T0, 1),
+        // fibonacci operand 2
+        asmAddi(Reg.T1, Reg.T1, 1),
+        // counter
+        asmAddi(Reg.T3, Reg.T3, 3),
+        // calc fibonacci 10th term
+        asmAddi(Reg.T4, Reg.T4, 10),
+        // if (t3 < t4) { jump 5 instructions; }
+        asmBlt(Reg.T4, Reg.T3, 4 * 6),
+        asmAdd(Reg.T2, Reg.T0, Reg.T1),
+        asmAdd(Reg.T0, Reg.T1, Reg.Zero),
+        asmAdd(Reg.T1, Reg.T2, Reg.Zero),
+        asmAddi(Reg.T3, Reg.T3, 1),
+        // unconditional jump
+        asmJal(Reg.Zero, -4 * 5),
+        asmRet(),
+    };
+
+    testHelper(program, Reg.T2, 55);
+}
