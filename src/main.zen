@@ -5,7 +5,7 @@ const std = @import("std");
 const Emulator = @import("emulator.zen").Emulator;
 
 pub fn main() anyerror!void {
-    const program = &[_]REG_TYPE {
+    const program = &[_]PROG_TYPE {
         asmAddi(Reg.T0, Reg.T0, 1),
         asmAddi(Reg.T1, Reg.T1, 1),
         asmAddi(Reg.T2, Reg.T2, 1023),

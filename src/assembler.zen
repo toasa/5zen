@@ -1,4 +1,5 @@
 usingnamespace @import("const.zen");
+usingnamespace @import("bit_utils.zen");
 const InstructionSet = @import("instruction.zen").InstructionSet;
 const AddInst = InstructionSet.AddInst;
 const AddiInst = InstructionSet.AddiInst;
@@ -14,7 +15,7 @@ pub const Assembler = struct {
         return Self{};
     }
 
-    pub fn assemble(program: []REG_TYPE) [MEM_SIZE]u8 {
+    pub fn assemble(program: []PROG_TYPE) [MEM_SIZE]u8 {
         var rom = [_]u8{0} ** MEM_SIZE;
         var i: usize = 0;
         for (program) |code| {
@@ -33,9 +34,10 @@ pub const Assembler = struct {
 // +------------------------------+---------+--------+----------------+----------+
 // |          imm[11:0]           |   rs1   | funct3 |       rd       |  opcode  |
 // +------------------------------+---------+--------+----------------+----------+
-fn asmIType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, imm: REG_TYPE) REG_TYPE {
+fn asmIType(opcode: u7, rd: Reg, funct3: PROG_TYPE, rs1: Reg, imm_i: i12) PROG_TYPE {
     const rd_i = regToUint(rd);
     const rs1_i = regToUint(rs1);
+    const imm: PROG_TYPE = iToU(i12, u12, imm_i);
     return (imm << 20) | (rs1_i << 15) | (funct3 << 12) | (rd_i << 7) | opcode;
 }
 
@@ -43,7 +45,7 @@ fn asmIType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, imm: REG_TYPE) REG_
 // +------------------------------+---------+--------+----------------+----------+
 // |    funct7    |     rs2       |   rs1   | funct3 |       rd       |  opcode  |
 // +------------------------------+---------+--------+----------------+----------+
-fn asmRType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, rs2: Reg, funct7: REG_TYPE) REG_TYPE {
+fn asmRType(opcode: u7, rd: Reg, funct3: PROG_TYPE, rs1: Reg, rs2: Reg, funct7: PROG_TYPE) PROG_TYPE {
     const rd_i = regToUint(rd);
     const rs1_i = regToUint(rs1);
     const rs2_i = regToUint(rs2);
@@ -54,13 +56,13 @@ fn asmRType(opcode: u7, rd: Reg, funct3: REG_TYPE, rs1: Reg, rs2: Reg, funct7: R
 // +-------+--------------+-------+------------------+----------------+----------+
 // |imm[20]|  imm[10:1]   |imm[11]|    imm[19:12]    |       rd       |  opcode  |
 // +-------+--------------+-------+------------------+----------------+----------+
-fn asmJType(opcode: u7, rd: Reg, imm: i20) REG_TYPE {
+fn asmJType(opcode: u7, rd: Reg, imm: i20) PROG_TYPE {
     const rd_i = regToUint(rd);
-    const imm_u = @intCast(u20, imm);
-    const imm10_1: REG_TYPE = @truncate(u9, imm_u);
-    const imm11: REG_TYPE = @truncate(u1, imm_u >> 10);
-    const imm12_19: REG_TYPE = @truncate(u8, imm_u >> 11);
-    const imm20: REG_TYPE = @truncate(u1, imm_u >> 19);
+    const imm_u = iToU(i20, u20, imm);
+    const imm10_1: PROG_TYPE = @truncate(u9, imm_u);
+    const imm11: PROG_TYPE = @truncate(u1, imm_u >> 10);
+    const imm12_19: PROG_TYPE = @truncate(u8, imm_u >> 11);
+    const imm20: PROG_TYPE = @truncate(u1, imm_u >> 19);
     return (imm20 << 31) | (imm10_1 << 22) | (imm11 << 20) | (imm12_19 << 12) | (rd_i << 7) | opcode;
 }
 
@@ -68,59 +70,59 @@ fn asmJType(opcode: u7, rd: Reg, imm: i20) REG_TYPE {
 // +-------+--------+---------------+------------------+--------+-------+----------+
 // |imm[12]|im[10:5]|      rs2      |   rs1   | funct3 |imm[4:1]|imm[11]|  opcode  |
 // +-------+--------+---------------+------------------+--------+-------+----------+
-fn asmBType(opcode: u7, imm: i12, funct3: REG_TYPE, rs1: Reg, rs2: Reg) REG_TYPE {
+fn asmBType(opcode: u7, imm: i12, funct3: PROG_TYPE, rs1: Reg, rs2: Reg) PROG_TYPE {
     const rs1_u = regToUint(rs1);
     const rs2_u = regToUint(rs2);
     // runtime error
     // cannot cast i12 to u12
-    const imm_u = @intCast(u12, imm);
-    const imm1_4: REG_TYPE = @truncate(u4, imm_u);
-    const imm5_10: REG_TYPE = @truncate(u6, imm_u >> 4);
-    const imm11: REG_TYPE = @truncate(u1, imm_u >> 10);
-    const imm12: REG_TYPE = @truncate(u1, imm_u >> 11);
+    const imm_u = iToU(i12, u12, imm);
+    const imm1_4: PROG_TYPE = @truncate(u4, imm_u);
+    const imm5_10: PROG_TYPE = @truncate(u6, imm_u >> 4);
+    const imm11: PROG_TYPE = @truncate(u1, imm_u >> 10);
+    const imm12: PROG_TYPE = @truncate(u1, imm_u >> 11);
     return (imm12 << 31) | (imm5_10 << 25) | (rs2_u << 20) | (rs1_u << 15) | (funct3 << 12) | (imm1_4 << 8) | (imm11 << 7) | opcode;
 }
 
 // add rd, rs1, rs2
-pub fn asmAdd(rd: Reg, rs1: Reg, rs2: Reg) REG_TYPE {
+pub fn asmAdd(rd: Reg, rs1: Reg, rs2: Reg) PROG_TYPE {
     const opcode = AddInst.opcode;
-    const funct3: REG_TYPE = 0;
-    const funct7: REG_TYPE = 0;
+    const funct3: PROG_TYPE = 0;
+    const funct7: PROG_TYPE = 0;
     return asmRType(opcode, rd, funct3, rs1, rs2, funct7);
 }
 
 // addi rd, rs1, imm
-pub fn asmAddi(rd: Reg, rs1: Reg, imm: REG_TYPE) REG_TYPE {
+pub fn asmAddi(rd: Reg, rs1: Reg, imm: i12) PROG_TYPE {
     const opcode = AddiInst.opcode;
-    const funct3: REG_TYPE = 0;
+    const funct3: PROG_TYPE = 0;
     return asmIType(opcode, rd, funct3, rs1, imm);
 }
 
 // blt rs1, rs2, offset
-pub fn asmBlt(rs1: Reg, rs2: Reg, offset: i12) REG_TYPE {
+pub fn asmBlt(rs1: Reg, rs2: Reg, offset: i12) u32 {
     const opcode = BltInst.opcode;
-    const funct3: REG_TYPE = 0b100;
+    const funct3: PROG_TYPE = 0b100;
     return asmBType(opcode, offset, funct3, rs1, rs2);
 }
 
 // ret
-pub fn asmRet() REG_TYPE {
+pub fn asmRet() PROG_TYPE {
     return asmJalr(Reg.Zero, 0, Reg.Ra);
 }
 
 // jal rd, offset
-pub fn asmJal(rd: Reg, offset: i20) REG_TYPE {
+pub fn asmJal(rd: Reg, offset: i20) PROG_TYPE {
     const opcode = JalInst.opcode;
     return asmJType(opcode, rd, offset);
 }
 
 // jalr rd, offset(rs1)
-pub fn asmJalr(rd: Reg, offset: REG_TYPE, rs1: Reg) REG_TYPE {
+pub fn asmJalr(rd: Reg, offset: i12, rs1: Reg) PROG_TYPE {
     const opcode = JalrInst.opcode;
-    const funct3: REG_TYPE = 0;
+    const funct3: PROG_TYPE = 0;
     return asmIType(opcode, rd, funct3, rs1, offset);
 }
 
-fn regToUint(r: Reg) REG_TYPE {
+fn regToUint(r: Reg) PROG_TYPE {
     return @enumToInt(r);
 }

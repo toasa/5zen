@@ -121,10 +121,10 @@ pub const Operand = union(Type) {
     pub const IType = struct {
         rs1: u5,
         rd: u5,
-        imm: u12,
+        imm: i12,
         func3: u3,
 
-        pub fn init(rs1: u5, rd: u5, imm: u12, func3: u3) @This() {
+        pub fn init(rs1: u5, rd: u5, imm: i12, func3: u3) @This() {
             return @This() {
                 .rs1 = rs1,
                 .rd = rd,

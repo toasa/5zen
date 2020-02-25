@@ -1,0 +1,10 @@
+const std = @import("std");
+
+pub fn iToU(comptime src_T: type, comptime dst_T: type, n: src_T) dst_T {
+    if (n >= 0) { return @intCast(dst_T, n); }
+    return @intCast(dst_T, @is(i32, n) + std.math.maxInt(dst_T) + 1);
+}
+
+pub fn uToI(comptime src_T: type, comptime dst_T: type, n: src_T) dst_T {
+    return @intCast(dst_T, n);
+}

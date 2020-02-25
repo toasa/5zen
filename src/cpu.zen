@@ -13,7 +13,7 @@ const Operand = instruction.Operand;
 pub const CPU = struct {
     const Self = @This();
     regs: [REG_NUM]REG_TYPE,
-    pc: REG_TYPE,
+    pc: PROG_TYPE,
     ram: [MEM_SIZE]u8,
     rom: [MEM_SIZE]u8,
 
@@ -28,17 +28,17 @@ pub const CPU = struct {
         };
     }
 
-    pub fn fetch(self: *Self) REG_TYPE {
+    pub fn fetch(self: *Self) PROG_TYPE {
         // little endian
-        const inst_byte0 = @is(REG_TYPE, self.rom[self.pc]) << 24;
-        const inst_byte1 = @is(REG_TYPE, self.rom[self.pc+1]) << 16;
-        const inst_byte2 = @is(REG_TYPE, self.rom[self.pc+2]) << 8;
-        const inst_byte3 = @is(REG_TYPE, self.rom[self.pc+3]);
+        const inst_byte0 = @is(PROG_TYPE, self.rom[self.pc]) << 24;
+        const inst_byte1 = @is(PROG_TYPE, self.rom[self.pc+1]) << 16;
+        const inst_byte2 = @is(PROG_TYPE, self.rom[self.pc+2]) << 8;
+        const inst_byte3 = @is(PROG_TYPE, self.rom[self.pc+3]);
         const inst_bytes = inst_byte0 | inst_byte1 | inst_byte2 | inst_byte3;
         return inst_bytes;
     }
 
-    pub fn decode(self: *Self, inst_bytes: REG_TYPE) InstructionSet {
+    pub fn decode(self: *Self, inst_bytes: PROG_TYPE) InstructionSet {
         // only RV32I
         const opcode = @truncate(u7, inst_bytes);
 
@@ -68,7 +68,7 @@ pub const CPU = struct {
         }
     }
 
-    fn decodeRType(inst_bytes: REG_TYPE) Operand {
+    fn decodeRType(inst_bytes: PROG_TYPE) Operand {
         const rs1 = @truncate(u5, inst_bytes >> 15);
         const rs2 = @truncate(u5, inst_bytes >> 20);
         const rd = @truncate(u5, inst_bytes >> 7);
@@ -79,25 +79,26 @@ pub const CPU = struct {
         return Operand{ .R = rtype };
     }
 
-    fn decodeIType(inst_bytes: REG_TYPE) Operand {
+    fn decodeIType(inst_bytes: PROG_TYPE) Operand {
         const rs1 = @truncate(u5, inst_bytes >> 15);
         const rd = @truncate(u5, inst_bytes >> 7);
-        const imm = @truncate(u12, inst_bytes >> 20);
+        const imm_u = @truncate(u12, inst_bytes >> 20);
         const func3 = @truncate(u3, inst_bytes >> 12);
+        const imm = @intCast(i12, imm_u);
         
         const itype = Operand.IType.init(rs1, rd, imm, func3);
         return Operand{ .I = itype };
     }
 
-    fn decodeBType(inst_bytes: REG_TYPE) Operand {
+    fn decodeBType(inst_bytes: PROG_TYPE) Operand {
         const rs1 = @truncate(u5, inst_bytes >> 15);
         const rs2 = @truncate(u5, inst_bytes >> 20);
         const func3 = @truncate(u3, inst_bytes >> 12);
 
         const imm1_4 = @truncate(u4, inst_bytes >> 8);
-        const imm5_10 = @truncate(u4, inst_bytes >> 25);
-        const imm11 = @truncate(u4, inst_bytes >> 7);
-        const imm12 = @truncate(u4, inst_bytes >> 31);
+        const imm5_10 = @truncate(u6, inst_bytes >> 25);
+        const imm11 = @truncate(u1, inst_bytes >> 7);
+        const imm12 = @truncate(u1, inst_bytes >> 31);
 
         const imm1_4_ = @intCast(u12, imm1_4);
         const imm5_10_ = @intCast(u12, imm5_10);
@@ -106,11 +107,12 @@ pub const CPU = struct {
 
         const imm_u = (imm12_ << 11) | (imm11_ << 10) | (imm5_10_ << 4) | imm1_4_;
         const imm = @bitCast(i12, imm_u);
+
         const btype = Operand.BType.init(rs1, rs2, imm, func3);
         return Operand{ .B = btype };
     }
 
-    fn decodeJType(inst_bytes: REG_TYPE) Operand {
+    fn decodeJType(inst_bytes: PROG_TYPE) Operand {
         const rd = @truncate(u5, inst_bytes >> 7);
         const imm10_1 = @truncate(u9, inst_bytes >> 22);
         const imm11 = @truncate(u1, inst_bytes >> 20);
@@ -151,7 +153,10 @@ pub const CPU = struct {
                 const rs1 = blt.operand.B.rs1;
                 const rs2 = blt.operand.B.rs2;
                 const imm = blt.operand.B.imm;
-                if (rs1 < rs2) {
+
+                const rs1_data = self.regRead(rs1);
+                const rs2_data = self.regRead(rs2);
+                if (rs1_data < rs2_data) {
                     var pc_i = @bitCast(i32, self.pc);
                     pc_i += imm;
                     self.pc = @bitCast(REG_TYPE, pc_i);
@@ -162,16 +167,17 @@ pub const CPU = struct {
             .Jal => |jal| {
                 const rd = jal.operand.J.rd;
                 const imm = jal.operand.J.imm;
-                self.regWrite(rd, self.pc + 4);
                 var pc_i = @bitCast(i32, self.pc);
+                self.regWrite(rd, pc_i + 4);
                 pc_i += imm;
-                self.pc = @bitCast(REG_TYPE, pc_i);
+                self.pc = @bitCast(PROG_TYPE, pc_i);
             },
             .Jalr => |jalr| {
                 const rd = jalr.operand.I.rd;
-                self.regWrite(rd, self.pc + 4);
+                var pc_i = @bitCast(i32, self.pc);
+                self.regWrite(rd, pc_i + 4);
                 const rs1 = jalr.operand.I.rs1;
-                self.pc = self.regs[rs1];
+                self.pc = @bitCast(PROG_TYPE, self.regs[rs1]);
             }
         }
     }
@@ -241,7 +247,7 @@ pub const Reg = enum {
 };
 
 // Test that `reg` register value equal to `expected`.
-fn testHelper(program: []REG_TYPE, reg: Reg, expected: REG_TYPE) void {
+fn testHelper(program: []PROG_TYPE, reg: Reg, expected: REG_TYPE) void {
     const Emulator = @import("emulator.zen").Emulator;
     const rom = Assembler.assemble(program);
     var emu = Emulator.init(rom);
@@ -252,7 +258,7 @@ fn testHelper(program: []REG_TYPE, reg: Reg, expected: REG_TYPE) void {
 }
 
 test "single addi instruction" {    
-    const program = &[_]REG_TYPE{
+    const program = &[_]PROG_TYPE{
         asmAddi(Reg.T0, Reg.T0, 8),
         asmRet(),
     };
@@ -260,7 +266,7 @@ test "single addi instruction" {
 }
 
 test "multi addi instruction" {
-    const program = &[_]REG_TYPE{
+    const program = &[_]PROG_TYPE{
         asmAddi(Reg.T1, Reg.T1, 1),
         asmAddi(Reg.T2, Reg.T1, 1023),
         asmRet(),
@@ -268,8 +274,16 @@ test "multi addi instruction" {
     testHelper(program, Reg.T2, 1024);
 }
 
+test "single addi instruction with negative value" {
+    const program = &[_]PROG_TYPE {
+        asmAddi(Reg.T0, Reg.T0, -22),
+        asmRet(),
+    };
+    testHelper(program, Reg.T0, -22);
+}
+
 test "add instruction" {
-    const program = &[_]REG_TYPE{
+    const program = &[_]PROG_TYPE{
         asmAddi(Reg.T0, Reg.T0, 1),
         asmAddi(Reg.T1, Reg.T1, 1023),
         asmAdd(Reg.T2, Reg.T1, Reg.T0),
@@ -279,7 +293,7 @@ test "add instruction" {
 }
 
 test "jal instruction" {
-    const program = &[_]REG_TYPE{
+    const program = &[_]PROG_TYPE{
         asmAddi(Reg.T1, Reg.T1, 10),
         asmJal(Reg.Zero, 8),
         // jump this instruction
@@ -290,13 +304,14 @@ test "jal instruction" {
 }
 
 test "blt instruction" {
-    const program = &[_]REG_TYPE{
-        asmAddi(Reg.T1, Reg.T1, 1),
+    const program = &[_]PROG_TYPE{
+        asmAddi(Reg.T1, Reg.T1, 11),
+        // while (t2 < t1) {
+        //     t2 += 2;
+        // }
         asmAddi(Reg.T2, Reg.T2, 2),
-        // if (t1 < t2) { pc += 8; }
-        asmBlt(Reg.T1, Reg.T2, 8),
-        asmAddi(Reg.T2, Reg.T2, 1),
+        asmBlt(Reg.T2, Reg.T1, -4),
         asmRet(),
     };
-    testHelper(program, Reg.T2, 2);
+    testHelper(program, Reg.T2, 12);
 }
