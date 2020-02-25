@@ -59,7 +59,7 @@ fn asmRType(opcode: u7, rd: Reg, funct3: PROG_TYPE, rs1: Reg, rs2: Reg, funct7: 
 fn asmJType(opcode: u7, rd: Reg, imm: i20) PROG_TYPE {
     const rd_i = regToUint(rd);
     const imm_u = iToU(i20, u20, imm);
-    const imm10_1: PROG_TYPE = @truncate(u9, imm_u);
+    const imm10_1: PROG_TYPE = @truncate(u10, imm_u);
     const imm11: PROG_TYPE = @truncate(u1, imm_u >> 10);
     const imm12_19: PROG_TYPE = @truncate(u8, imm_u >> 11);
     const imm20: PROG_TYPE = @truncate(u1, imm_u >> 19);

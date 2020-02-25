@@ -114,7 +114,7 @@ pub const CPU = struct {
 
     fn decodeJType(inst_bytes: PROG_TYPE) Operand {
         const rd = @truncate(u5, inst_bytes >> 7);
-        const imm10_1 = @truncate(u9, inst_bytes >> 22);
+        const imm10_1 = @truncate(u10, inst_bytes >> 22);
         const imm11 = @truncate(u1, inst_bytes >> 20);
         const imm12_19 = @truncate(u8, inst_bytes >> 12);
         const imm20 = @truncate(u1, inst_bytes >> 31);
